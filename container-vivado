@@ -12,7 +12,8 @@ REALFILE = os.path.realpath(__file__)
 INSTALL_DIR = os.path.join(os.path.dirname(REALFILE), "Xilinx")
 BIN_DIR = "Vivado/2023.2/bin"
 DIGEST_2023_2 = "ea98fc804c6fb074c1ea8c672d2bda728f79e6fa"
-
+BINARIES = ["vivado"]
+IMAGE_TAG = "x64-linux"
 
 def main():
     try:
@@ -25,21 +26,21 @@ def main():
         p.set_defaults(cmd=None)
         subparsers = p.add_subparsers(dest="cmd")
 
-        p_setup = subparsers.add_parser("setup")
+        p_setup = subparsers.add_parser("setup", help="run image/install/link")
         p_setup.set_defaults(cmd=setup)
         p_setup.add_argument("installer")
 
-        p_image = subparsers.add_parser("image")
+        p_image = subparsers.add_parser("image", help="build container image")
         p_image.set_defaults(cmd=image)
 
-        p_install = subparsers.add_parser("install")
+        p_install = subparsers.add_parser("install", help="run installer in container")
         p_install.set_defaults(cmd=install)
         p_install.add_argument("installer")
 
-        p_link = subparsers.add_parser("link")
+        p_link = subparsers.add_parser("link", help="create shortcut symlinks")
         p_link.set_defaults(cmd=link)
 
-        p_run = subparsers.add_parser("run")
+        p_run = subparsers.add_parser("run", help="run command within repo")
         p_run.set_defaults(cmd=run)
         p_run.add_argument("command", nargs=argparse.REMAINDER)
 
@@ -65,7 +66,7 @@ def image(args):
     docker(
         "build",
         "--platform=linux/amd64",
-        "--tag=x64-linux",
+        f"--tag={IMAGE_TAG}",
         f"--build-arg=PACKAGES={" ".join(PACKAGES)}",
         "-",
         input=DOCKERFILE,
@@ -94,7 +95,7 @@ def install(args):
                     f"--mount=type=bind,source={INSTALL_DIR},target=/home/user/Xilinx",
                     f"--mount=type=bind,source={installer},target=/home/user/install",
                     "--workdir=/home/user",
-                    "x64-linux",
+                    IMAGE_TAG,
                     "sudo",
                     "--user=user",
                     "--set-home",
@@ -151,7 +152,7 @@ def run(args):
             f"--mount=type=bind,source={INSTALL_DIR},target=/home/user/Xilinx",
             f"--mount=type=bind,source={git_work_dir},target={git_work_dir}",
             f"--workdir={cur_dir}",
-            "x64-linux",
+            IMAGE_TAG,
             "sudo",
             "--user=user",
             "--set-home",
@@ -245,8 +246,6 @@ CreateFileAssociation=1
 # Choose whether disk usage will be optimized (reduced) after installation
 EnableDiskUsageOptimization=1
 """.lstrip()
-
-BINARIES = ["vivado"]
 
 if __name__ == "__main__":
     main()
